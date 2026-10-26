@@ -1,0 +1,9 @@
+# Python environment and cache
+.venv/
+ml/.venv/
+__pycache__/
+*.py[cod]
+
+# Private financial data
+ml/data/statement.csv
+ml/data/monthly_training_data.csv
