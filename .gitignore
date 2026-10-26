@@ -7,3 +7,13 @@ __pycache__/
 # Private financial data
 ml/data/statement.csv
 ml/data/monthly_training_data.csv
+
+# Sensitive credentials
+server/.env
+.env
+.env*
+
+# Node.js dependencies
+server/node_modules/
+client/node_modules/
+node_modules/

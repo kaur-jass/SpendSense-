@@ -9,6 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ML_DIR = PROJECT_ROOT / "ml"
 INPUT_FILE = ML_DIR / "data" / "statement.csv"
 OUTPUT_FILE = ML_DIR / "data" / "monthly_training_data.csv"
+AUDIT_FILE = ML_DIR / "data" / "expense_audit.csv"
 
 # Maximum transaction amount to include in personal-spending data
 MAX_TRANSACTION_AMOUNT = 5000
@@ -51,16 +52,25 @@ def main():
     cleaned = clean_transactions(transactions)
     classified = classify_transactions(cleaned)
 
+    # Save all cleaned transactions with their classifications.
+    AUDIT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    classified.to_csv(AUDIT_FILE, index=False)
+
+    print("\nTransaction audit created successfully.")
+    print(f"Audit output: {AUDIT_FILE}")
+    print("\nClassification counts:")
+    print(classified["type"].value_counts(dropna=False))
+    
     # Keep only transactions classified as expenses.
     expenses = classified[classified["type"] == "expense"].copy()
 
-    # Exclude transactions above ₹6,000.
+    # Exclude transactions above ₹5,000.
     excluded_count = (expenses["amount"] > MAX_TRANSACTION_AMOUNT).sum()
 
     expenses = expenses[expenses["amount"] <= MAX_TRANSACTION_AMOUNT].copy()
 
     if expenses.empty:
-        raise ValueError("No expenses remain after applying the ₹6,000 limit.")
+        raise ValueError("No expenses remain after applying the ₹5,000 limit.")
 
     # Aggregate the filtered expenses by month.
     monthly_data = build_monthly_features(expenses)
