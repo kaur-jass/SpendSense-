@@ -8,61 +8,135 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+import { useEffect, useState } from "react";
+
 import Sidebar from "../components/layout/Sidebar";
 import StatCard from "../components/dashboard/StatCard";
 import SpendingChart from "../components/dashboard/SpendingChart";
 import SparkleBackground from "../components/layout/SparkleBackground";
+import { getExpenses } from "../services/expenseService";
+import AddExpenseModal from "../components/dashboard/AddExpenseModal";
+const money = (value) =>
+  `₹${Math.abs(value).toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  })}`;
 
-const transactions = [
-  {
-    name: "Groceries",
-    category: "Food & essentials",
-    date: "Today",
-    amount: -850,
-    color: "bg-[#A3C997]/20 text-[#A3C997] border border-[#A3C997]/30",
-  },
-  {
-    name: "Café",
-    category: "Food & drinks",
-    date: "Yesterday",
-    amount: -320,
-    color: "bg-[#E89B84]/20 text-[#E89B84] border border-[#E89B84]/30",
-  },
-  {
-    name: "Bus pass",
-    category: "Transport",
-    date: "24 Oct",
-    amount: -450,
-    color: "bg-sky-400/20 text-sky-300 border border-sky-400/30",
-  },
-  {
-    name: "Freelance work",
-    category: "Income",
-    date: "23 Oct",
-    amount: 2500,
-    color: "bg-[#A3C997]/20 text-[#A3C997] border border-[#A3C997]/30",
-  },
+const formatDate = (dateValue) => {
+  if (!dateValue) return "Date unavailable";
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const isSameDay = (first, second) =>
+    first.getDate() === second.getDate() &&
+    first.getMonth() === second.getMonth() &&
+    first.getFullYear() === second.getFullYear();
+
+  if (isSameDay(date, today)) return "Today";
+  if (isSameDay(date, yesterday)) return "Yesterday";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+  });
+};
+
+const categoryColors = [
+  "bg-[#A3C997]/20 text-[#A3C997] border border-[#A3C997]/30",
+  "bg-[#E89B84]/20 text-[#E89B84] border border-[#E89B84]/30",
+  "bg-sky-400/20 text-sky-300 border border-sky-400/30",
+  "bg-purple-400/20 text-purple-300 border border-purple-400/30",
 ];
 
-const money = (value) =>
-  `₹${Math.abs(value).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
-
 export default function Dashboard() {
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showAddExpense, setShowAddExpense] = useState(false);
+
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getExpenses();
+        setExpenses(data);
+      } catch (err) {
+        console.error("Failed to fetch expenses:", err);
+        setError(
+          "Could not load expenses. Check that your backend and database are running."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExpenses();
+  }, []);
+
+  const now = new Date();
+
+  const currentMonthExpenses = expenses.filter((expense) => {
+    const date = new Date(expense.date);
+
+    return (
+      !Number.isNaN(date.getTime()) &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear()
+    );
+  });
+
+  const monthlySpending = currentMonthExpenses.reduce(
+    (total, expense) => total + Number(expense.amount || 0),
+    0
+  );
+
+  const recentTransactions = [...expenses]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+
+  const budget = 10000;
+  const remainingBudget = budget - monthlySpending;
+
+  const daysInMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0
+  ).getDate();
+
+  const daysRemaining = Math.max(daysInMonth - now.getDate() + 1, 1);
+
+  const dailyAllowance = Math.max(remainingBudget, 0) / daysRemaining;
+
+  const currentMonthName = now.toLocaleDateString("en-IN", {
+    month: "long",
+  });
+
+  const currentDate = now.toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <div className="relative min-h-screen bg-[#0F0D0C] text-[#FFFDF9] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(163,201,151,0.08),transparent)]">
-      {/* Animated sparkle background */}
       <SparkleBackground />
 
-      {/* Fixed navigation sidebar */}
       <Sidebar />
 
-      {/* Main dashboard content */}
       <main className="relative z-10 ml-64 min-w-0 px-5 py-7 sm:px-8 lg:px-10">
         {/* Header */}
         <header className="mb-9 flex flex-wrap items-center justify-between gap-5">
           <div>
             <p className="mb-2 text-sm font-medium text-[#C2B4A5]">
-              Tuesday, 27 October 2026
+              {currentDate}
             </p>
 
             <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -70,12 +144,13 @@ export default function Dashboard() {
             </h1>
 
             <p className="mt-2 text-sm text-[#C2B4A5]">
-              Here's your financial snapshot for October.
+              Here's your financial snapshot for {currentMonthName}.
             </p>
           </div>
 
           <button
             type="button"
+            onClick={() => setShowAddExpense(true)}
             className="inline-flex items-center gap-2 rounded-xl bg-[#A3C997] px-5 py-3 text-sm font-bold text-[#0F0D0C] shadow-[0_0_20px_rgba(163,201,151,0.3)] transition hover:bg-[#B5D6AA] hover:shadow-[0_0_25px_rgba(163,201,151,0.5)]"
           >
             <Plus size={18} strokeWidth={2.5} />
@@ -83,11 +158,21 @@ export default function Dashboard() {
           </button>
         </header>
 
+        {/* Error message */}
+        {error && (
+          <div
+            role="alert"
+            className="mb-6 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-300"
+          >
+            {error}
+          </div>
+        )}
+
         {/* Statistics cards */}
         <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             title="Spent this month"
-            value="₹4,280"
+            value={loading ? "Loading..." : money(monthlySpending)}
             subtitle="Across all categories"
             icon={Wallet}
             accent="terracotta"
@@ -95,16 +180,20 @@ export default function Dashboard() {
 
           <StatCard
             title="Budget remaining"
-            value="₹5,720"
-            subtitle="57% of your budget is available"
+            value={loading ? "Loading..." : money(remainingBudget)}
+            subtitle={
+              remainingBudget < 0
+                ? "You have exceeded your monthly budget"
+                : "Based on a ₹10,000 monthly budget"
+            }
             icon={TrendingDown}
             accent="sage"
           />
 
           <StatCard
             title="Daily allowance"
-            value="₹190"
-            subtitle="Suggested daily spending limit"
+            value={loading ? "Loading..." : money(dailyAllowance)}
+            subtitle="Available budget divided by days remaining"
             icon={CalendarDays}
             accent="neutral"
           />
@@ -162,12 +251,15 @@ export default function Dashboard() {
               </h2>
 
               <p className="mt-1 text-sm text-[#C2B4A5]">
-                Your latest money movements
+                Your latest recorded expenses
               </p>
             </div>
 
             <button
               type="button"
+              onClick={() =>
+                alert("The full transaction history will be added next.")
+              }
               className="flex items-center gap-2 text-sm font-semibold text-[#A3C997] transition hover:text-[#B5D6AA]"
             >
               <span>View all</span>
@@ -175,49 +267,66 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div className="divide-y divide-white/10">
-            {transactions.map((transaction) => (
-              <div
-                key={transaction.name}
-                className="flex items-center justify-between gap-4 py-4 first:pt-2 last:pb-1"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${transaction.color}`}
-                  >
-                    {transaction.name.charAt(0)}
+          {loading ? (
+            <p className="py-8 text-center text-sm text-[#C2B4A5]">
+              Loading your transactions...
+            </p>
+          ) : error ? (
+            <p className="py-8 text-center text-sm text-[#C2B4A5]">
+              Transactions could not be loaded.
+            </p>
+          ) : recentTransactions.length === 0 ? (
+            <div className="py-10 text-center">
+              <Wallet size={32} className="mx-auto mb-3 text-[#A3C997]" />
+
+              <p className="text-sm font-medium text-white">
+                No expenses yet
+              </p>
+
+              <p className="mt-2 text-sm text-[#C2B4A5]">
+                Add your first expense to see it here.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-white/10">
+              {recentTransactions.map((transaction, index) => (
+                <div
+                  key={transaction._id || index}
+                  className="flex items-center justify-between gap-4 py-4 first:pt-2 last:pb-1"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
+                        categoryColors[index % categoryColors.length]
+                      }`}
+                    >
+                      {(transaction.title || "E").charAt(0).toUpperCase()}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-white">
+                        {transaction.title || "Untitled expense"}
+                      </p>
+
+                      <p className="mt-1 text-xs text-[#C2B4A5]">
+                        {transaction.category || "Uncategorized"}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-white">
-                      {transaction.name}
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-bold text-[#FFFDF9]">
+                      -{money(Number(transaction.amount || 0))}
                     </p>
 
                     <p className="mt-1 text-xs text-[#C2B4A5]">
-                      {transaction.category}
+                      {formatDate(transaction.date)}
                     </p>
                   </div>
                 </div>
-
-                <div className="shrink-0 text-right">
-                  <p
-                    className={`text-sm font-bold ${
-                      transaction.amount > 0
-                        ? "text-[#A3C997]"
-                        : "text-[#FFFDF9]"
-                    }`}
-                  >
-                    {transaction.amount > 0 ? "+" : "-"}
-                    {money(transaction.amount)}
-                  </p>
-
-                  <p className="mt-1 text-xs text-[#C2B4A5]">
-                    {transaction.date}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Footer */}
@@ -225,6 +334,15 @@ export default function Dashboard() {
           SpendSense · Make every rupee count.
         </footer>
       </main>
+       {/* Add Expense Modal */}
+      {showAddExpense && (
+        <AddExpenseModal
+          onClose={() => setShowAddExpense(false)}
+          onExpenseAdded={(newExpense) => {
+            setExpenses((previous) => [newExpense, ...previous]);
+          }}
+        />
+        )}
     </div>
   );
 }
