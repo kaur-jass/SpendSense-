@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import "tailwindcss";
+
+:root {
+  font-family: 'DM Sans', sans-serif;
+  color: #FFFDF9;
+  background-color: #0F0D0C;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Global Color Variables */
+  --color-background: #0F0D0C;
+  --color-sidebar: #14110F;
+  --color-card: #1E1A17;
+  --color-text: #FFFDF9;
+  --color-muted: #C2B4A5;
+  --color-sage: #A3C997;
+  --color-terracotta: #E89B84;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--color-text);
+  background-color: var(--color-background);
+  background-attachment: fixed;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: 'Playfair Display', serif;
+  letter-spacing: -0.01em;
+}
+
+/* Starburst Geometric Sparkle Animation */
+@keyframes sparkleStar {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) translateY(0px) rotate(0deg);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.25) translateY(-14px) rotate(45deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.2) translateY(-28px) rotate(90deg);
+  }
+}
+
+/* Micro-Glow Dot Sparkle Animation */
+@keyframes sparkleDot {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(0px) scale(0.5);
+  }
+  40% {
+    opacity: 0.8;
+    transform: translateY(-12px) scale(1.3);
+  }
+  70% {
+    opacity: 0.3;
+    transform: translateY(-22px) scale(0.8);
+  }
+}
+
+.animate-sparkle-star {
+  animation: sparkleStar infinite ease-in-out;
+  will-change: transform, opacity;
+}
+
+.animate-sparkle-dot {
+  animation: sparkleDot infinite ease-in-out;
+  will-change: transform, opacity;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-sparkle-star,
+  .animate-sparkle-dot {
+    animation: none;
+    opacity: 0.3;
+  }
+}
